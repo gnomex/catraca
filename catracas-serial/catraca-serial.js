@@ -1,3 +1,5 @@
+"use strict";
+
 var com          = require("serialport"),
     S            = require('string'),
     EventEmitter = require('events').EventEmitter,
@@ -16,8 +18,9 @@ serialPort.on('data', function(data) {
   if ( S(data).contains('VERIFY-UID:')) {
     emitter.emit('verify', cut_uid_from_raw_data(data));
     emitter.emit('response', "print<Hey bitchs>");
-  };
-  console.log(data);
+  } else {
+    console.log(data);
+  }
 });
 
 serialPort.on('close',function() {

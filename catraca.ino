@@ -23,9 +23,11 @@
 
   Wheel
     Radius ~= 4,5cm (0.045m)
+    middle radius ~= 3,5 cm
     Diameter ~= 0,09m
     Area ~= 0.00636173 m2
     Circumference ~= 0.282743 m
+    iman: {NN: 0º, NN: 120º, NN: 240º}
   Hall shield
     sensor a3144
     Vcc +5V
@@ -119,6 +121,28 @@ int
 do_hall_measurement()
 {
   return (int) ( analogRead(HALL_PINOUT) - NOFIELD) * TOMILLIGAUSS;
+}
+
+// pass1: not moving
+//   current negative
+//   rotate_right();
+//   while negative
+// pass2: moving
+//   middle positive
+//   while positive
+// pass3: moved
+//   negative again
+//   lock_all();
+void
+wait_for_wheel_spin()
+{
+
+  rotate_right();
+  pong("You can pass now");
+  while( do_hall_measurement() < 0 )              { delay(100); }
+  while( do_hall_measurement() > 0 ){  }
+  if   (do_hall_measurement() < 0)    { pong("Spin completed"); }
+  lock_relays();
 }
 
 void
@@ -235,9 +259,11 @@ loop()
         pong( incomingBytes.substring(at + 1, end - 1) );
       }
 
-      delay(2000);
+      wait_for_wheel_spin();
 
-      pong("Hall:" + String( do_hall_measurement(), DEC ));
+      // delay(2000);
+
+      // pong("Hall:" + String( do_hall_measurement(), DEC ));
 
     }
     if( incomingBytes.startsWith("readhall") ){
