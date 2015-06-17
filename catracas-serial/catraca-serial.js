@@ -1,10 +1,7 @@
-// executar monitor serial
-// Troca de eventos entre monitor e server express (Rest ou socket.io ???)
-
-var com = require("serialport");
-var S = require('string');
-var EventEmitter = require('events').EventEmitter;
-var emitter = new EventEmitter();
+var com          = require("serialport"),
+    S            = require('string'),
+    EventEmitter = require('events').EventEmitter,
+    emitter      = new EventEmitter();
 
 var serialPort = new com.SerialPort("/dev/ttyACM0", {
   baudrate: 9600,
@@ -16,10 +13,9 @@ serialPort.on('open',function() {
 });
 
 serialPort.on('data', function(data) {
-  //Criar um string processor
   if ( S(data).contains('VERIFY-UID:')) {
     emitter.emit('verify', cut_uid_from_raw_data(data));
-    emitter.emit('response');
+    emitter.emit('response', "print<Hey bitchs>");
   };
   console.log(data);
 });
@@ -42,20 +38,17 @@ function cut_uid_from_raw_data(uid) {
 // });
 
 emitter.on('verify', function (uid) {
-  console.log("From event: " + uid);
+  console.log("UID[" + uid + "]");
 });
 
-emitter.on('response', function (err, data) {
-  if (err)  {
-    console.log("Deu merda!" + err);
-    return;
-  }
-
-  // var buff = new Buffer([0xFF], 'hex');
-  // serialPort.write(buff, function (err, res) {
-  // serialPort.write("print<Hey bitchs>", function (err, res) {
-  serialPort.write(data, function (err, res) {
-    console.log('err ' + err);
-    console.log('results ' + res);
-  });
+/*
+  Write something on serial channel
+  Data casts to a Buffer, like
+    -Buffer([0xFF], 'hex');
+    -Buffer(data, 'utf8');
+*/
+emitter.on('response', function (data) {
+  var buff = new Buffer(data, 'ascii');
+  serialPort.write(buff);
 });
+

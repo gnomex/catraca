@@ -37,16 +37,15 @@
 #include <MFRC522.h>
 #include <LiquidCrystal.h>
 
-#define NOFIELD 505L    // Analog output with no applied field, calibrate this
+#define NOFIELD 505L
 #define TOMILLIGAUSS 1.953125
 
 // LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 LiquidCrystal lcd(7, 6, A2, A3, A4, A5);
 
-String id2="";
-String id3="9955204222";
-boolean avlimpiar=false;
-int contLimpiar=0;
+// String id3="9955204222";
+// boolean avlimpiar=false;
+// int contLimpiar=0;
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance.
@@ -119,8 +118,7 @@ noise(int pin,int seg)
 int
 do_hall_measurement()
 {
-  int hall_value = analogRead(HALL_PINOUT);
-  return (float) (hall_value - NOFIELD) * TOMILLIGAUSS;
+  return (int) ( analogRead(HALL_PINOUT) - NOFIELD) * TOMILLIGAUSS;
 }
 
 void
@@ -129,7 +127,6 @@ pong(String received)
   lcd.clear();
   lcd.setCursor(0,0);
   lcd.print(received);
-
   Serial.println(received);
 }
 
@@ -180,6 +177,8 @@ rotate_left()
   relay_opened(RELAY_LEFT);
 }
 
+String id2="";
+
 void
 loop()
 {
@@ -207,17 +206,27 @@ loop()
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("Waiting for a server response");
-    delay(1000);
+    delay(500);
   }
 
   String incomingBytes; // Serial Event
+  Serial.flush(); // Waits for the transmission of outgoing serial data to complete
 
   if(Serial.available() > 0)  {
     incomingBytes = Serial.readString();
 
-    if(String("auth").equalsIgnoreCase(incomingBytes)){}
-    if(String("fail").equalsIgnoreCase(incomingBytes)){}
-    if(String("error").equalsIgnoreCase(incomingBytes)){}
+    // if(String("auth").equalsIgnoreCase(incomingBytes)){
+    if( incomingBytes.startsWith("auth") ){
+
+    }
+    // if(String("fail").equalsIgnoreCase(incomingBytes)){
+    if( incomingBytes.startsWith("fail") ){
+
+    }
+    // if(String("error").equalsIgnoreCase(incomingBytes)){
+    if( incomingBytes.startsWith("error") ){
+
+    }
     if( incomingBytes.startsWith("print<")){
       int at = incomingBytes.lastIndexOf('<');
       int end = incomingBytes.lastIndexOf('>');
@@ -225,8 +234,15 @@ loop()
       if( at < end ){
         pong( incomingBytes.substring(at + 1, end - 1) );
       }
+
+      delay(2000);
+
+      pong("Hall:" + String( do_hall_measurement(), DEC ));
+
     }
-    if(String("readhall").equalsIgnoreCase(incomingBytes)){}
+    if( incomingBytes.startsWith("readhall") ){
+      pong("Hall:" + String( do_hall_measurement(), DEC ));
+    }
   }
 
   delay(1000);
@@ -237,24 +253,4 @@ loop()
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 }
-
-
-  // if(id2 == id3){
-  //   lcd.clear();
-  //   lcd.setCursor(0,1);
-  //   lcd.print("UID:");
-  //   lcd.print(id2);
-  //   noise(8,10);
-  //   delay(1000);
-  // }else{
-  //   lcd.clear();
-  //   lcd.setCursor(0,0);
-  //   lcd.print("ERRO");
-  //   lcd.setCursor(0,1);
-  //   lcd.print("UID:");
-  //   lcd.print(id2);
-  //   noise(8,70);
-  //   delay(1000);
-  // }
-  // id2="";
 

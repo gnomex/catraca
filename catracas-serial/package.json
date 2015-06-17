@@ -1,0 +1,21 @@
+{
+  "name": "catracas-serial",
+  "version": "1.0.0",
+  "description": "A interface to talk with arduino using USB",
+  "main": "catraca-serial.js",
+  "dependencies": {
+    "string": ">=3.3.0",
+    "serialport": ">=1.7.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ttyACM",
+    "Arduino",
+    "BananaPI"
+  ],
+  "author": "Kenner Kliemann",
+  "license": "GPL-2"
+}
