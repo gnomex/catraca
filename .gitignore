@@ -27,4 +27,4 @@
 *.out
 *.app
 
-catracas-serial/node-modules/
+catracas-serial/node_modules/
