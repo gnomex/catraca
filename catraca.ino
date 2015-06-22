@@ -38,6 +38,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <LiquidCrystal.h>
+#include <DateTime.h>
 
 #define NOFIELD 505L
 #define TOMILLIGAUSS 1.953125
@@ -54,16 +55,15 @@ MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance.
 
 #define HALL_PINOUT A0
 
-#define RELAYIN4 5  // Nothing yet
-#define RELAY_RELEASE 4  //Inductor 3 - Release: NC - no current(default), NO current and release the iron rod
-#define RELAY_LEFT 3  //Inductor 2 - Left: NC - current and active
-#define RELAY_RIGHT 2  //Inductor 1 - Right: NC - current and active
+#define RELAYIN4 5  // Led Array, relay IN1
+#define RELAY_RELEASE 2  //Inductor 3 - Release: NC - no current(default), NO current and release the iron rod, relay IN2
+#define RELAY_LEFT 3  //Inductor 2 - Left: NC - current and active, relay IN3
+#define RELAY_RIGHT 4  //Inductor 1 - Right: NC - current and active, relay IN4
 
 void
 setup()
 {
-  Serial.begin(9600); // Initialize serial communications with the PC
-  while (!Serial);
+  Serial.begin(38400, SERIAL_8O1); // Initialize serial communications with the PC
   SPI.begin();    // Init SPI bus
   lcd.begin(20, 4);
   mfrc522.PCD_Init(); // Init MFRC522 card
@@ -136,11 +136,8 @@ do_hall_measurement()
 void
 wait_for_wheel_spin()
 {
-
-  rotate_right();
-  pong("You can pass now");
-  while( do_hall_measurement() < 0 )              { delay(100); }
-  while( do_hall_measurement() > 0 ){  }
+  while( do_hall_measurement() < 0 )  { delay(100); }
+  while( do_hall_measurement() > 0 )  {  }
   if   (do_hall_measurement() < 0)    { pong("Spin completed"); }
   lock_relays();
 }
@@ -190,6 +187,13 @@ lock_relays()
 }
 
 void
+unlock_on_emergency()
+{
+  relay_opened(RELAY_RELEASE);
+  relay_opened(RELAYIN4);
+}
+
+void
 rotate_right()
 {
   relay_opened(RELAY_RIGHT);
@@ -201,36 +205,39 @@ rotate_left()
   relay_opened(RELAY_LEFT);
 }
 
-String id2="";
+String
+read_uid_from_RFID()
+{
+  String uid = "";
+
+  for (byte i = 0; i < mfrc522.uid.size; i++) {
+    String partial = String(mfrc522.uid.uidByte[i], DEC);
+    uid += partial;
+  }
+
+  pong("VERIFY-UID:" + uid );
+  return uid;
+}
+
+String
+timestamp() {
+  return String(DateTime.now(),DEC);
+}
 
 void
 loop()
 {
-
   default_message(); delay(1000);
 
-  if ( ! mfrc522.PICC_IsNewCardPresent()) {
-    return;
-  }
-  if ( ! mfrc522.PICC_ReadCardSerial()) {
-    return;
-  }
-
-  for (byte i = 0; i < mfrc522.uid.size; i++) {
-    // Serial.print(mfrc522.uid.uidByte[i], DEC);
-    String id1 = String(mfrc522.uid.uidByte[i], DEC);
-    id2 = id2 + id1;
-  }
-
-  do_hall_measurement();
-
-  Serial.println("VERIFY-UID:" + id2);
+  if ( ! mfrc522.PICC_IsNewCardPresent()) { return; }
+  if ( ! mfrc522.PICC_ReadCardSerial())   { return; }
+  String current_uid = read_uid_from_RFID();
 
   while(!(Serial.available() > 0) ){
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print("Waiting for a server response");
-    delay(500);
+    delay(300); //Waits for buffer
   }
 
   String incomingBytes; // Serial Event
@@ -239,44 +246,53 @@ loop()
   if(Serial.available() > 0)  {
     incomingBytes = Serial.readString();
 
-    // if(String("auth").equalsIgnoreCase(incomingBytes)){
-    if( incomingBytes.startsWith("auth") ){
-
+    if( incomingBytes.startsWith("keepalive") ) { pong("I am alive"); }
+    if( incomingBytes.startsWith("emergency") ) {
+      unlock_on_emergency();
+      pong("[EMERGENCIA]        Trava liberada");
+      // while(true);
+      delay(10000);
     }
-    // if(String("fail").equalsIgnoreCase(incomingBytes)){
-    if( incomingBytes.startsWith("fail") ){
+    if( incomingBytes.startsWith("auth<") )  {
+      int at  = incomingBytes.lastIndexOf('<');
+      int end = incomingBytes.lastIndexOf('>');
 
-    }
-    // if(String("error").equalsIgnoreCase(incomingBytes)){
-    if( incomingBytes.startsWith("error") ){
+      String direction = "RR";
+      if( at < end ) direction = incomingBytes.substring(at + 1, end);
 
+      if (direction.startsWith("RR")) { rotate_right(); }
+      if (direction.startsWith("RL")) { rotate_left();  }
+
+      pong("Trava liberada");
+      wait_for_wheel_spin();
     }
-    if( incomingBytes.startsWith("print<")){
+    if( incomingBytes.startsWith("auth-fail<") )  {
       int at = incomingBytes.lastIndexOf('<');
       int end = incomingBytes.lastIndexOf('>');
 
-      if( at < end ){
-        pong( incomingBytes.substring(at + 1, end - 1) );
-      }
-
-      wait_for_wheel_spin();
-
-      // delay(2000);
-
-      // pong("Hall:" + String( do_hall_measurement(), DEC ));
-
+      if( at < end ) pong( incomingBytes.substring(at + 1, end - 1) );
+      delay(1000);
     }
-    if( incomingBytes.startsWith("readhall") ){
+    if( incomingBytes.startsWith("error") ) {}
+    if( incomingBytes.startsWith("print<")) {
+      int at = incomingBytes.lastIndexOf('<');
+      int end = incomingBytes.lastIndexOf('>');
+
+      if( at < end ) pong( incomingBytes.substring(at + 1, end - 1) );
+    }
+    if( incomingBytes.startsWith("readhall") )  {
       pong("Hall:" + String( do_hall_measurement(), DEC ));
+    }
+    if( incomingBytes.startsWith("outofservice") ) {
+      // while(true);
+      unlock_on_emergency();
+      pong("Em manutenção");
+      delay(100000);
     }
   }
 
-  delay(1000);
-
   lock_relays();
 
-  id2 = "";
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 }
-
