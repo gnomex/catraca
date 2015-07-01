@@ -224,6 +224,9 @@ timestamp() {
   return String(DateTime.now(),DEC);
 }
 
+// SENSOR MEASUREMENT
+//name, value, unit, data
+
 void
 loop()
 {
