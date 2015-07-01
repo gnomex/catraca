@@ -1,41 +1,21 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
-
 var app = require('../app');
 var debug = require('debug')('a-front:server');
 var http = require('http');
-var models = require("../models");
-
-/**
- * Get port from environment and store in Express.
- */
+// var models = require("../models");
 
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
-models.sequelize.sync().then(function () {
-  var server = app.listen(app.get('port'), function() {
-    debug('Express server listening on port ' + server.address().port);
-  });
-});
-
-
-/**
- * Create HTTP server.
- */
+// models.sequelize.sync().then(function () {
+//   var server = app.listen(app.get('port'), function() {
+//     debug('Express server listening on port ' + server.address().port);
+//   });
+// });
 
 var server = http.createServer(app);
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+var io = require('socket.io')(server);
 
 /**
  * Normalize a port into a number, string, or false.
@@ -96,3 +76,92 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+
+// =====================================================================
+
+
+io.on('connection', function(socket){
+  io.emit('websock info', socket.id);
+
+  socket.on('message', function(msg){
+    console.log("[" + socket.id + "] Got: " + msg);
+  });
+
+  socket.on('disconnect', function(){
+    console.log("[" + socket.id + "] disconnected");
+  });
+});
+
+
+// SerialPort
+var com          = require("serialport"),
+    S            = require('string'),
+    EventEmitter = require('events').EventEmitter;
+
+var emitter    = new EventEmitter();
+var serialPort = new com.SerialPort("/dev/ttyACM0", {
+  baudrate: 38400,
+  parity: 'odd',
+  parser: com.parsers.readline('\r')
+});
+
+serialPort.on('open',function() {
+  console.log('Connected to ' + this.path + " and listening...");
+});
+
+serialPort.on('data', function(data) {
+  if ( S(data).contains('VERIFY-UID:')) {
+    var card_id = cut_uid_from_raw_data(data);
+    emitter.emit('verify', card_id);
+    emitter.emit('authorized', "auth<RR>");
+    io.emit('auth', "Card uuid " + card_id);
+  } else {
+    console.log(data);
+    io.emit('message', data);
+  }
+});
+
+serialPort.on('close',function() {
+  console.log('Device disconected and the port is closed');
+  io.emit('disconnected', "Device " + this.path + " disconected");
+});
+
+serialPort.on('error',function(err) {
+  console.log('Error [' + new Date().toString() + "]:" + err);
+  io.emit('error', "Error from middleware: " + err);
+});
+
+//Returns a string
+function cut_uid_from_raw_data(uid) {
+  var pos = uid.indexOf(':');
+  return uid.substring(pos + 1, uid.length);
+}
+
+emitter.on('authorized', function (direction) {
+  var buff = new Buffer(direction, 'ascii');
+  serialPort.write(buff);
+});
+
+/*
+  Write something on serial channel
+  Data casts to a Buffer, like
+    -Buffer([0xFF], 'hex');
+    -Buffer(data, 'utf8');
+*/
+emitter.on('response', function (data) {
+  var buff = new Buffer(data, 'ascii');
+  serialPort.write(buff);
+});
+
+emitter.on('keepalive', function () {
+  var buff = new Buffer("keepalive", 'ascii');
+  serialPort.write(buff);
+});
+
+/**
+  Server
+*/
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);

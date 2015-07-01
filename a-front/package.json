@@ -16,6 +16,8 @@
     "pg-hstore": "^2.3.2",
     "sequelize": "^3.3.2",
     "sequelize-cli": "^1.7.0",
-    "serve-favicon": "~2.2.1"
+    "serialport": ">=1.7.4",
+    "serve-favicon": "~2.2.1",
+    "string": ">=3.3.0"
   }
 }

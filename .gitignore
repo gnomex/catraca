@@ -28,3 +28,4 @@
 *.app
 
 catracas-serial/node_modules/
+node_modules/
