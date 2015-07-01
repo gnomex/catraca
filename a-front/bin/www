@@ -22,18 +22,34 @@ var redis = require("redis"),
 
 function set_touple_redis(key, value, callback) {
   client.set(key, value, function (error, result) {
-    if (error !== null) console.log("error: " + error);
-    else {
+    if (error !== null) {
+      console.log("error: " + error);
+      callback(new Error('Redis problem: ' + error), null);
+    } else {
       console.log("The value for '"+ key +"' is set to: " + value);
+      callback(null, value);
     }
+  });
+}
+
+function del_touple_redis(key, callback) {
+  client.del(key, function (error) {
+    if (error !== null) {
+      console.log("error: " + error);
+      callback(new Error('Redis problem: ' + error), null);
+    }
+    console.log("The value for '"+ key +"' is removed");
   });
 }
 
 function get_redis_from_key(key, callback) {
   client.get(key, function (error, val) {
-    if (error !== null) console.log("error: " + error);
-    else {
-      console.log("The value for this key is " + val);
+    if (error !== null) {
+      console.log("error: " + error);
+      callback(new Error('Redis problem: ' + error), null);
+    } else {
+      console.log("The value for '"+ key +"' is: " + val);
+      callback(null, val);
     }
   });
 }
@@ -105,18 +121,27 @@ function onListening() {
 io.on('connection', function(socket){
   io.emit('websock info', socket.id);
 
+  set_touple_redis("227240203247", "authorized", function (err, data) {
+    // body...
+  });
+  set_touple_redis("13170181222", "authorized", function (err, data) {
+
+  });
+
   socket.on('message', function(msg){
     console.log("[" + socket.id + "] Got: " + msg);
   });
 
   socket.on('authorize', function (uuid) {
     set_touple_redis(uuid, "authorized", function (err, data) {
-      // body...
-    });
+      io.emit('message', data);
+    })
   });
 
   socket.on('unauthorize', function (uuid) {
-
+    del_touple_redis(uuid, function (err) {
+      io.emit('message', "UUID " + uuid + " removed");
+    })
   });
 
   socket.on('disconnect', function(){

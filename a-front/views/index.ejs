@@ -91,7 +91,7 @@ socket.on('error', function(err){
 });
 
 socket.on('auth', function(msg){
-  disable_buttons();
+  // disable_buttons();
 
   var node = document.createElement('div');
   node.className = "bs-example";
@@ -107,18 +107,25 @@ socket.on('auth', function(msg){
   var action = document.createElement('div');
   action.className = "highlight";
 
-  var act_bttn = document.createElement('a');
-  act_bttn.className = "btn btn-warning";
-  act_bttn.innerHTML = "Remover Acesso";
+  // var act_bttn = document.createElement('a');
+  // act_bttn.setAttribute("id", msg);
+  // act_bttn.className = "btn btn-warning";
+  // act_bttn.innerHTML = "Remover Acesso";
 
-  action.appendChild(act_bttn);
+  // console.log(act_bttn);
+
+  // action.appendChild(act_bttn);
   node.appendChild(action);
 
   $('#messages').prepend(node);
 });
+
+function lol (argument) {
+  $('a').click( function() { your_code_here; return false; } );
+}
 
 socket.on('denied', function(msg){
-  disable_buttons();
+  // disable_buttons();
 
   var node = document.createElement('div');
   node.className = "bs-example";
@@ -133,15 +140,19 @@ socket.on('denied', function(msg){
   var action = document.createElement('div');
   action.className = "highlight";
 
-  var act_bttn = document.createElement('a');
-  act_bttn.className = "btn btn-success";
-  act_bttn.innerHTML = "Autorizar";
+  // var act_bttn = document.createElement('a');
+  // act_bttn.className = "btn btn-success";
+  // // act_bttn.setAttribute("id", "btn_" + getRandomInt());
+  // act_bttn.setAttribute("id", "btn_auth");
+  // act_bttn.setAttribute("href", "#");
+  // act_bttn.innerHTML = "Autorizar";
 
-  action.appendChild(act_bttn);
+  // action.appendChild(act_bttn);
   node.appendChild(action);
 
   $('#messages').prepend(node);
 });
+
 
 socket.on('disconnected', function(msg){
   clean_events();
@@ -165,7 +176,16 @@ function disable_buttons() {
   console.log(a);
   a.forEach(function(element){
     element.setAttribute('disabled', "disabled");
+    element.removeAttribute('id');
   });
+}
+
+// Returns a random integer between min (included) and max (excluded)
+// Using Math.round() will give you a non-uniform distribution!
+function getRandomInt() {
+  var min = 10;
+  var max = 65500;
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 </script>
