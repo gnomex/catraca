@@ -3,11 +3,11 @@
 var app = require('../app');
 var debug = require('debug')('a-front:server');
 var http = require('http');
-// var models = require("../models");
 
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
+// var models = require("../models");
 // models.sequelize.sync().then(function () {
 //   var server = app.listen(app.get('port'), function() {
 //     debug('Express server listening on port ' + server.address().port);
@@ -16,6 +16,27 @@ app.set('port', port);
 
 var server = http.createServer(app);
 var io = require('socket.io')(server);
+
+var redis = require("redis"),
+    client = redis.createClient();
+
+function set_touple_redis(key, value, callback) {
+  client.set(key, value, function (error, result) {
+    if (error !== null) console.log("error: " + error);
+    else {
+      console.log("The value for '"+ key +"' is set to: " + value);
+    }
+  });
+}
+
+function get_redis_from_key(key, callback) {
+  client.get(key, function (error, val) {
+    if (error !== null) console.log("error: " + error);
+    else {
+      console.log("The value for this key is " + val);
+    }
+  });
+}
 
 /**
  * Normalize a port into a number, string, or false.
@@ -88,6 +109,16 @@ io.on('connection', function(socket){
     console.log("[" + socket.id + "] Got: " + msg);
   });
 
+  socket.on('authorize', function (uuid) {
+    set_touple_redis(uuid, "authorized", function (err, data) {
+      // body...
+    });
+  });
+
+  socket.on('unauthorize', function (uuid) {
+
+  });
+
   socket.on('disconnect', function(){
     console.log("[" + socket.id + "] disconnected");
   });
@@ -108,15 +139,43 @@ var serialPort = new com.SerialPort("/dev/ttyACM0", {
 
 serialPort.on('open',function() {
   console.log('Connected to ' + this.path + " and listening...");
+  io.emit('message', 'Connected to ' + this.path + " and listening...");
 });
+
+function authorized(uuid, callback) {
+  client.get(uuid, function (error, val) {
+    if (error !== null) {
+      console.log("error: " + error);
+      callback(error, null);
+    }
+    if( val !== null )  {
+      console.log("UUID" + val + " allowed");
+      callback(null, val);
+    } else {
+      callback(new Error('UUID not defined yet'), null);
+    }
+  });
+}
 
 serialPort.on('data', function(data) {
   if ( S(data).contains('VERIFY-UID:')) {
     var card_id = cut_uid_from_raw_data(data);
-    emitter.emit('verify', card_id);
-    emitter.emit('authorized', "auth<RR>");
-    io.emit('auth', "Card uuid " + card_id);
-  } else {
+
+    authorized(card_id, function (err, data) {
+      if(err) {
+        emitter.emit('denied', "auth-fail<Card " + card_id + " not allowed>");
+        io.emit('denied', "Card uuid " + card_id );
+      } else  {
+        emitter.emit('authorized', "auth<RR>");
+        io.emit('auth', "Card uuid " + card_id);
+      }
+    })
+  }
+  else if (S(data).contains('Spin completed')) {
+    console.log(data);
+    io.emit('info', "Rotação concluida e catraca travada!");
+  }
+  else {
     console.log(data);
     io.emit('message', data);
   }
@@ -128,8 +187,9 @@ serialPort.on('close',function() {
 });
 
 serialPort.on('error',function(err) {
-  console.log('Error [' + new Date().toString() + "]:" + err);
-  io.emit('error', "Error from middleware: " + err);
+  var an = "Error [" + new Date().toString() + "]:" + err;
+  console.log(an);
+  io.emit('error', an);
 });
 
 //Returns a string
@@ -140,6 +200,11 @@ function cut_uid_from_raw_data(uid) {
 
 emitter.on('authorized', function (direction) {
   var buff = new Buffer(direction, 'ascii');
+  serialPort.write(buff);
+});
+
+emitter.on('denied', function (message) {
+  var buff = new Buffer(message, 'ascii');
   serialPort.write(buff);
 });
 

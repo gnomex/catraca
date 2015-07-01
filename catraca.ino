@@ -273,7 +273,7 @@ loop()
       int at = incomingBytes.lastIndexOf('<');
       int end = incomingBytes.lastIndexOf('>');
 
-      if( at < end ) pong( incomingBytes.substring(at + 1, end - 1) );
+      if( at < end ) pong( incomingBytes.substring(at + 1, end) );
       delay(1000);
     }
     if( incomingBytes.startsWith("error") ) {}

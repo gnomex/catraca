@@ -51,10 +51,15 @@ socket.on('websock info', function(data){
 socket.on('info', function(msg){
   var div = document.createElement('div');
   div.className = "alert alert-info";
-  div.setAttribute('role', "alert"); // disabled="disabled"
+  div.setAttribute('role', "alert");
   div.innerHTML = msg;
 
-  $('#messages').prepend(div);
+  div.appendChild(span_time());
+
+  // $('#messages').firstChild().appendChild(div);
+  var p01 = document.getElementById('messages');
+  // console.log(p01.firstElementChild);
+  p01.firstElementChild.appendChild(div);
 });
 
 socket.on('message', function(msg){
@@ -62,22 +67,27 @@ socket.on('message', function(msg){
   div.className = "bs-callout bs-callout-info";
   div.innerHTML = "<p>" + msg + "</p>";
 
-  var current_time = document.createElement('span');
-  current_time.className = "label label-default";
-  var now = new Date();
-  current_time.innerHTML = now.toString();
-  div.appendChild(current_time);
+  div.appendChild(span_time());
 
   $('#messages').prepend(div);
 });
 
-socket.on('error', function(msg){
-  var div = document.createElement('div');
-  div.className = "alert alert-danger";
-  div.setAttribute('role', "alert");
-  div.innerHTML = msg;
+function span_time() {
+  var current_time = document.createElement('span');
+  current_time.className = "label label-default";
+  var now = new Date();
+  current_time.innerHTML = now.toString();
+  return current_time;
+}
 
-  $('#messages').prepend(div);
+socket.on('error', function(err){
+  clean_events();
+
+  var node = document.createElement('div');
+  node.className = "bs-callout bs-callout-danger";
+  node.innerHTML = "<h4>" + err + "</h4>";
+
+  $('#messages').prepend(node);
 });
 
 socket.on('auth', function(msg){
@@ -91,6 +101,8 @@ socket.on('auth', function(msg){
   what.innerHTML = msg;
 
   node.appendChild(what);
+
+  node.appendChild(span_time());
 
   var action = document.createElement('div');
   action.className = "highlight";
@@ -106,6 +118,8 @@ socket.on('auth', function(msg){
 });
 
 socket.on('denied', function(msg){
+  disable_buttons();
+
   var node = document.createElement('div');
   node.className = "bs-example";
 
@@ -114,6 +128,7 @@ socket.on('denied', function(msg){
   what.innerHTML = msg;
 
   node.appendChild(what);
+  node.appendChild(span_time());
 
   var action = document.createElement('div');
   action.className = "highlight";
