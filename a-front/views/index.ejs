@@ -91,7 +91,7 @@ socket.on('error', function(err){
 });
 
 socket.on('auth', function(msg){
-  // disable_buttons();
+  disable_buttons();
 
   var node = document.createElement('div');
   node.className = "bs-example";
@@ -107,25 +107,22 @@ socket.on('auth', function(msg){
   var action = document.createElement('div');
   action.className = "highlight";
 
-  // var act_bttn = document.createElement('a');
-  // act_bttn.setAttribute("id", msg);
-  // act_bttn.className = "btn btn-warning";
-  // act_bttn.innerHTML = "Remover Acesso";
+  var act_bttn = document.createElement('a');
+  act_bttn.setAttribute("id", "btn_auth");
+  act_bttn.setAttribute("href", "#");
+  act_bttn.setAttribute("role", "button");
+  act_bttn.className = "btn btn-warning";
+  act_bttn.innerHTML = "Remover Acesso";
 
-  // console.log(act_bttn);
+  act_bttn.addEventListener('click', handle_auth_actions(this, act_bttn));
 
-  // action.appendChild(act_bttn);
+  action.appendChild(act_bttn);
   node.appendChild(action);
-
   $('#messages').prepend(node);
 });
-
-function lol (argument) {
-  $('a').click( function() { your_code_here; return false; } );
-}
 
 socket.on('denied', function(msg){
-  // disable_buttons();
+  disable_buttons();
 
   var node = document.createElement('div');
   node.className = "bs-example";
@@ -140,19 +137,41 @@ socket.on('denied', function(msg){
   var action = document.createElement('div');
   action.className = "highlight";
 
-  // var act_bttn = document.createElement('a');
-  // act_bttn.className = "btn btn-success";
-  // // act_bttn.setAttribute("id", "btn_" + getRandomInt());
-  // act_bttn.setAttribute("id", "btn_auth");
-  // act_bttn.setAttribute("href", "#");
-  // act_bttn.innerHTML = "Autorizar";
+  var act_bttn = document.createElement('a');
+  act_bttn.className = "btn btn-success";
+  act_bttn.setAttribute("id", "btn_auth");
+  act_bttn.setAttribute("href", "#");
+  act_bttn.setAttribute("role", "button");
+  act_bttn.innerHTML = "Autorizar";
+  act_bttn.addEventListener('click', handle_auth_actions(this, act_bttn));
 
-  // action.appendChild(act_bttn);
+  action.appendChild(act_bttn);
   node.appendChild(action);
-
   $('#messages').prepend(node);
 });
 
+function handle_auth_actions(context, element) {
+    console.log("I'll try to deny, wait a minute");
+
+    // element.setAttribute('disabled', "disabled");
+    // element.removeAttribute('id');
+    // element.removeAttribute('href');
+
+    // socket.emit('unauthorize', "9955204222", function (err, data) {
+    //   if (err)  return;
+    //   act_bttn.className = "btn btn-success";
+    //   act_bttn.innerHTML = "Autorizar";
+    // });
+    // socket.emit('authorize', "9955204222", function (err, data) {
+    //   if (err)  return;
+    //   act_bttn.className = "btn btn-warning";
+    //   act_bttn.innerHTML = "Remover Acesso";
+    // });
+}
+
+function give_me_a_button (action) {
+
+}
 
 socket.on('disconnected', function(msg){
   clean_events();
@@ -177,6 +196,7 @@ function disable_buttons() {
   a.forEach(function(element){
     element.setAttribute('disabled', "disabled");
     element.removeAttribute('id');
+    element.removeAttribute('href');
   });
 }
 
